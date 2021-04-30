@@ -1,6 +1,11 @@
 import plotly.graph_objs as go
 import plotly
 
+DELOITTE_COLOURS = [
+    "#2C5234", "#009A44", "#86BC25", "#C4D600", "#E3E48D", "#004F59",
+    "#0097A9", "#6FC2B4", "#DDEFE8"
+]
+
 
 def canvas() -> plotly.graph_objects:
     """ Create plotly.graph_objects template with custom layout for macroeconomic variable.
@@ -41,24 +46,26 @@ def plot_distribution(fig, pivoed_df):
     institutes = pivoed_df.index.get_level_values("Institute").unique()
     portfolios = pivoed_df.index.get_level_values("Portfolio").unique()
 
-    for port in portfolios:
+    for i, port in enumerate(portfolios):
         fig.add_trace(
             go.Bar(
                 name=port,
                 x=institutes,
                 y=pivoed_df.xs(port, level="Portfolio").values.flatten(),
                 hovertemplate='%{y:.2f}%',
+                marker_color=DELOITTE_COLOURS[i],
             ))
 
     fig.update_layout(barmode='stack')
     return fig
 
 
-def add_horizontal_bar(fig, pivoed_df):
+def add_horizontal_bar(fig, pivoed_df, id):
     institutes = pivoed_df.index.get_level_values("Institute").unique()
     fig.add_trace(
         go.Bar(y=institutes,
                x=pivoed_df.values.flatten(),
+               marker_color=DELOITTE_COLOURS[id],
                orientation='h',
                hovertemplate='%{x:.2f}%',
                texttemplate="%{x:.2f}%",
@@ -71,12 +78,13 @@ def pivoted_df_quarterly_bars(fig, pivoed_df):
     quarters = pivoed_df.index.get_level_values("Quarter").unique()
     institutes = pivoed_df.index.get_level_values("Institute").unique()
 
-    for val in institutes:
+    for i, val in enumerate(institutes):
         fig.add_trace(
             go.Bar(
                 name=val,
                 x=quarters,
                 y=pivoed_df.xs(val, level="Institute").values.flatten(),
+                marker_color=DELOITTE_COLOURS[i],
                 hovertemplate='%{y:.2f}%',
                 texttemplate="%{y:.2f}%",
                 textposition="inside",

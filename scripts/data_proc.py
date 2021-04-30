@@ -64,7 +64,9 @@ def filter_portfolio_pivot(df, *portfolios):
 
 
 def search_stage_item(df, item):
-    return [
+    stages = pd.Series([
         col.split(f"{item} ")[1] for col in df.columns
         if (item in col) & ("Share" not in col)
-    ]
+    ])
+
+    return stages
