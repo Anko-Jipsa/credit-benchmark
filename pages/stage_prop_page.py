@@ -6,21 +6,19 @@ import streamlit as st
 
 def stage_proportion_bar_plot(df):
     fig = vf.canvas()
-    fig = vf.pivoted_df_quarterly_bars(fig, df)
+    fig = vf.add_quarterly_bars(fig, df)
     return fig
 
 
 def main(df):
+    st.title(f"Stage Balance Analysis")
     st.header("Filter")
-    stage = sf.stage_selector(df, "Staging balances (%)", side_bar=False)
     portfolio = sf.portfolio_select(df, side_bar=False)
-    institutes = sf.institute_select(df, side_bar=False)
+    stage = sf.stage_selector(df, "Staging balances (%)", side_bar=False)
     st.write("---")
-    if institutes:
-        df = dp.filter_institute(df, *institutes)
-        df = dp.filter_portfolio(df, portfolio)
-        df = dp.pivot_df(df, "Staging balances (%)", stage)
 
-        st.header("Coverage")
-        st.subheader("Quarter")
-        st.write(stage_proportion_bar_plot(df))
+    df = dp.filter_portfolio(df, portfolio)
+    df = dp.pivot_df(df, "Staging balances (%)", stage)
+
+    st.header(f"{stage} Balance Analysis")
+    st.write(stage_proportion_bar_plot(df))

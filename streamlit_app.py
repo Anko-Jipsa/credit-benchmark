@@ -5,16 +5,19 @@ from pages import *
 
 country = sf.country_select()
 df = dp.read_file(country)
-item = sf.item_selector()
+institutes = sf.institute_select(df)
+df = dp.filter_institute(df, *institutes)
 
-if item == "Front":
-    front.main()
+if institutes:
+    item = sf.item_selector()
+    if item == "Front":
+        front.main()
 
-elif (item == "ECL") | (item == "EAD"):
-    ecl_ead_page.main(df, item)
+    elif (item == "ECL") | (item == "EAD"):
+        ecl_ead_page.main(df, item)
 
-elif item == "Coverage Ratio":
-    coverage_page.main(df)
+    elif item == "Coverage Ratio":
+        coverage_page.main(df)
 
-elif item == "Staging balances (%)":
-    stage_prop_page.main(df)
+    elif item == "Staging balances (%)":
+        stage_prop_page.main(df)

@@ -38,21 +38,13 @@ def pre_process(df: pd.DataFrame) -> pd.DataFrame:
     df = column_rename(df, "Asset", "EAD")
     df = column_rename(df, "ECL", "ECL")
     df = column_rename(df, "Coverage", "Coverage Ratio")
-    exposure_cols = [col for col in df.columns if "EAD" in col]
-    # df[exposure_cols] = df[exposure_cols] * 1000
-    # new_asset_cols = ["EAD_" + col.split("_")[1] for col in asset_cols]
-    # df[asset_cols] = df[asset_cols] * 1000
-    # df = df.rename(columns=dict(zip(asset_cols, new_asset_cols)))
 
-    # # Rename ECL columns to be in line with the other data
-    # ecl_cols = [col for col in df.columns if "ECL" in col]
-    # new_ecl_cols = ["ECL_" + col.split("_")[1] for col in ecl_cols]
-    # df = df.rename(columns=dict(zip(ecl_cols, new_ecl_cols)))
-
-    # # Rename coverage columns to be in line with the other data
-    # cov_cols = [col for col in df.columns if "Coverage" in col]
-    # new_cov_cols = ["Coverage Ratio_" + col.split("_")[1] for col in ecl_cols]
-    # df = df.rename(columns=dict(zip(cov_cols, new_cov_cols)))
+    ead_cols = [col for col in df.columns if "EAD" in col]
+    df[ead_cols] = df[ead_cols] * 1000  # Scale up (bn)
+    cr_cols = [col for col in df.columns if "Coverage Ratio" in col]
+    df[cr_cols] = df[cr_cols] * 100  # Percentage
+    stage_cols = [col for col in df.columns if "Staging balances" in col]
+    df[stage_cols] = df[stage_cols] * 100  # Percentage
 
     # Unpivot data
     df = pd.melt(df,
@@ -101,15 +93,17 @@ def pre_process(df: pd.DataFrame) -> pd.DataFrame:
     df["NPL Ratio"] = df["EAD Performing"] / df["EAD Default"]
 
     for item in ["Performing", "Default"]:
-        df[f"Coverage Ratio {item}"] = df[f"EAD {item}"] + df[f"EAD {item}"]
+        df[f"Coverage Ratio {item}"] = 100 * df[f"ECL {item}"] / df[
+            f"EAD {item}"]
 
     for item in ["Stage 1", "Stage 2", "Stage 3"]:
         if item in ["Stage 1", "Stage 2"]:
-            df[f"Share {item[0]}{item[-1]} (EAD)"] = df[f"EAD {item}"] / df[
-                "EAD Total"]
+            df[f"Share {item[0]}{item[-1]} (EAD)"] = 100 * df[
+                f"EAD {item}"] / df["EAD Total"]
         else:
             df[f"Share {item[0]}{item[-1]}/Poci (EAD)"] = (
-                df[f"EAD {item}"] + df["EAD POCI"].fillna(0)) / df["EAD Total"]
+                100 * df[f"EAD {item}"] +
+                df["EAD POCI"].fillna(0)) / df["EAD Total"]
     return df
 
 

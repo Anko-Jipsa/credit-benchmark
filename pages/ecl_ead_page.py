@@ -12,7 +12,25 @@ def distribution_table(df, stage, date):
 
 def distribution_plot(df, stage, date):
     fig = vf.canvas()
-    fig = vf.plot_distribution(fig, distribution_table(df, stage, date))
+    fig = vf.add_portfolio_distribution(fig,
+                                        distribution_table(df, stage, date))
+    return fig
+
+
+def portfolio_distribution_plot(df, stage, date, portfolio):
+    fig = vf.canvas()
+    fig = vf.add_portfolio_bar(fig, distribution_table(df, stage, date),
+                               portfolio)
+    return fig
+
+
+def distribution_plot_time(df, stage, date, portfolio):
+    _df = dp.distribution_pivot(df)
+    fig = vf.canvas()
+    fig = vf.avg_portfolio_distribution_time(
+        fig,
+        _df.groupby(["Quarter", "Portfolio"]).mean(), portfolio)
+    fig = vf.ind_portfolio_distribution_time(fig, _df, portfolio)
     return fig
 
 
@@ -26,22 +44,38 @@ def quarterly_change_plot(df):
 
 
 def main(df, item):
-    st.header("Filter")
-    stage = sf.stage_selector(df, item, side_bar=False)
-    date = sf.quarter_selector(df, side_bar=False)
-    institutes = sf.institute_select(df, side_bar=False)
+    stage = sf.stage_selector(df, item)
+    df = dp.pivot_df(df, item, stage)
+    st.title(f"{item} Analysis")
+    st.header("Filter(s)")
     st.write("---")
-    if institutes:
-        df = dp.filter_institute(df, *institutes)
-        df = dp.pivot_df(df, item, stage)
 
-        st.header("ECL Distribution")
-        st.subheader("Bank")
-        st.write(distribution_plot(df, stage, date))
+    st.header(f"{item} Distribution Analysis")
+    date = st.selectbox(label="Select Date",
+                        options=df.index.get_level_values("Quarter").unique())
+    st.write(distribution_plot(df, stage, date))
+    st.write("---")
 
-        st.header("ECL Quarterly Change")
-        st.subheader("Bank")
-        st.write(quarterly_change_plot(df))
+    st.header(f"{item} Distribution Analysis by Portfolio")
+    portfolio = st.selectbox(
+        label="Select Portfolio",
+        options=df.index.get_level_values("Portfolio").unique())
+    st.write(portfolio_distribution_plot(df, stage, date, portfolio))
+    st.write("---")
 
-    else:
-        st.warning("Please Select Institutes.")
+    st.header(f"{item} Distribution Analysis over Quarters")
+    portfolio2 = st.selectbox(
+        label="Select Portfolio",
+        options=df.index.get_level_values("Portfolio").unique(),
+        key="Sub2")
+    st.write(distribution_plot_time(df, stage, date, portfolio2))
+    st.write("---")
+
+    st.header(f"{item} Quarterly Change Analysis")
+    portfolio3 = st.selectbox(
+        label="Select Portfolio",
+        options=df.index.get_level_values("Portfolio").unique(),
+        key="Sub3")
+    _df = dp.filter_portfolio_pivot(df, portfolio3)
+    st.write(quarterly_change_plot(_df))
+    st.write("---")

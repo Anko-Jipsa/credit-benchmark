@@ -1,5 +1,8 @@
+#%%
 import plotly.graph_objs as go
 import plotly
+from scripts import data_proc as dp
+import numpy as np
 
 DELOITTE_COLOURS = [
     "#2C5234", "#009A44", "#86BC25", "#C4D600", "#E3E48D", "#004F59",
@@ -42,16 +45,16 @@ def canvas() -> plotly.graph_objects:
     return fig
 
 
-def plot_distribution(fig, pivoed_df):
-    institutes = pivoed_df.index.get_level_values("Institute").unique()
-    portfolios = pivoed_df.index.get_level_values("Portfolio").unique()
+def add_portfolio_distribution(fig, pivoted_df):
+    institutes = pivoted_df.index.get_level_values("Institute").unique()
+    portfolios = pivoted_df.index.get_level_values("Portfolio").unique()
 
     for i, port in enumerate(portfolios):
         fig.add_trace(
             go.Bar(
                 name=port,
                 x=institutes,
-                y=pivoed_df.xs(port, level="Portfolio").values.flatten(),
+                y=pivoted_df.xs(port, level="Portfolio").values.flatten(),
                 hovertemplate='%{y:.2f}%',
                 marker_color=DELOITTE_COLOURS[i],
             ))
@@ -60,34 +63,94 @@ def plot_distribution(fig, pivoed_df):
     return fig
 
 
-def add_horizontal_bar(fig, pivoed_df, id):
-    institutes = pivoed_df.index.get_level_values("Institute").unique()
+def add_horizontal_bar(fig, pivoted_df, id):
+    institutes = pivoted_df.index.get_level_values("Institute").unique()
     fig.add_trace(
         go.Bar(y=institutes,
-               x=pivoed_df.values.flatten(),
+               x=pivoted_df.values.flatten(),
                marker_color=DELOITTE_COLOURS[id],
                orientation='h',
                hovertemplate='%{x:.2f}%',
                texttemplate="%{x:.2f}%",
                textposition="inside",
-               name=pivoed_df.columns[0]))
+               name=pivoted_df.columns[0]))
     return fig
 
 
-def pivoted_df_quarterly_bars(fig, pivoed_df):
-    quarters = pivoed_df.index.get_level_values("Quarter").unique()
-    institutes = pivoed_df.index.get_level_values("Institute").unique()
+def add_quarterly_bars(fig, pivoted_df):
+    quarters = pivoted_df.index.get_level_values("Quarter").unique()
+    institutes = pivoted_df.index.get_level_values("Institute").unique()
 
     for i, val in enumerate(institutes):
         fig.add_trace(
             go.Bar(
                 name=val,
                 x=quarters,
-                y=pivoed_df.xs(val, level="Institute").values.flatten(),
+                y=pivoted_df.xs(val, level="Institute").values.flatten(),
                 marker_color=DELOITTE_COLOURS[i],
                 hovertemplate='%{y:.2f}%',
                 texttemplate="%{y:.2f}%",
                 textposition="inside",
             ))
 
+    return fig
+
+
+def add_portfolio_bar(fig, pivoted_df, portfolio):
+    institutes = pivoted_df.index.get_level_values("Institute").unique()
+    pivoted_df = dp.filter_portfolio_pivot(pivoted_df, portfolio)
+
+    tot_avg = pivoted_df.groupby(level=[0, 2]).mean()
+    tot_avg = dp.filter_portfolio_pivot(tot_avg, portfolio).values[0]
+    fig.add_trace(
+        go.Bar(
+            name=portfolio,
+            x=institutes,
+            y=pivoted_df.values.flatten(),
+            marker_color=DELOITTE_COLOURS[0],
+            hovertemplate='%{y:.2f}%',
+            texttemplate="%{y:.2f}%",
+            textposition="inside",
+        ))
+    fig.add_trace(
+        go.Scatter(
+            name="Average",
+            x=institutes,
+            y=np.tile(tot_avg, (len(institutes), 1)).flatten(),
+            hovertemplate='%{y:.2f}%',
+            marker_color=DELOITTE_COLOURS[3],
+        ))
+    return fig
+
+
+def avg_portfolio_distribution_time(fig, df, portfolio):
+    portfolios = df.index.get_level_values("Portfolio").unique()
+    quarters = df.index.get_level_values("Quarter").unique()
+
+    fig.add_trace(
+        go.Scatter(
+            name="Average",
+            x=quarters,
+            y=df.xs(portfolio, level="Portfolio").values.flatten(),
+            marker_color=DELOITTE_COLOURS[0],
+            hovertemplate='%{y:.2f}%',
+        ))
+    return fig
+
+
+def ind_portfolio_distribution_time(fig, df, portfolio):
+    portfolios = df.index.get_level_values("Portfolio").unique()
+    quarters = df.index.get_level_values("Quarter").unique()
+    institutes = df.index.get_level_values("Institute").unique()
+
+    for i, item in enumerate(institutes):
+        _df = df[df.index.get_level_values("Institute") == item]
+        fig.add_trace(
+            go.Scatter(
+                name=item,
+                x=quarters,
+                y=_df.xs(portfolio, level="Portfolio").values.flatten(),
+                marker_color=DELOITTE_COLOURS[i + 1],
+                hovertemplate='%{y:.2f}%',
+            ))
     return fig
